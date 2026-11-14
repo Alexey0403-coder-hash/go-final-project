@@ -1,0 +1,21 @@
+services:
+  scheduler:
+    build: .
+    image: scheduler:latest
+    container_name: scheduler-container
+
+    ports:
+      - "7540:7540"
+
+    env_file:
+      - .env
+
+    environment:
+      TODO_PORT: ":7540"
+      TODO_DBFILE: "/data/scheduler.db"
+
+    volumes:
+      - scheduler-data:/data
+
+volumes:
+  scheduler-data:

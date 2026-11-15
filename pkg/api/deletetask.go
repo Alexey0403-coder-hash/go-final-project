@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"final_project/pkg/db"
 	"log"
 	"net/http"
@@ -12,8 +13,15 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 
 	err := db.DeleteTask(id)
-	if err != nil {
-		writeJSONError(w, err.Error())
+
+	switch {
+	case errors.Is(err, db.ErrTaskNotFound):
+		writeJSONError(w, "задача не найдена", http.StatusNotFound)
+		return
+
+	case err != nil:
+		log.Printf("ошибка удаления задачи: %v", err)
+		writeJSONError(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 		return
 	}
 
@@ -21,7 +29,7 @@ func DeleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(struct{}{})
 	if err != nil {
-		log.Printf("Ошибка отправки JSON: %v", err)
+		log.Printf("ошибка отправки JSON: %v", err)
 		return
 	}
 }

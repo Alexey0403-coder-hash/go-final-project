@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 
 	_ "modernc.org/sqlite"
@@ -23,23 +24,34 @@ ON scheduler (date);
 var db *sql.DB
 
 // Init запускает пул соединения с БД и, если это необходимо, создает БД
-func Init(dbFile string) error {
+func Init(dbFile string) (*sql.DB, error) {
 	_, err := os.Stat(dbFile)
 	var install bool
 	if os.IsNotExist(err) {
 		install = true
 	} else if err != nil {
-		return err
+		return nil, err
 	}
 	db, err = sql.Open("sqlite", dbFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	if install == true {
 		_, err = db.Exec(schema)
 		if err != nil {
-			return err
+			_ = db.Close()
+			db = nil
+			return nil, fmt.Errorf("ошибка инициализации БД: %w", err)
 		}
 	}
-	return nil
+	return db, nil
+}
+
+// Close закрывает пул соединений с базой данных
+func Close() error {
+	if db == nil {
+		return nil
+	}
+	return db.Close()
 }

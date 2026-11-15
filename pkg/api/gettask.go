@@ -14,7 +14,7 @@ import (
 func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	if strings.TrimSpace(id) == "" {
-		writeJSONError(w, "Ошибка: передан пустой ID")
+		writeJSONError(w, "ошибка: передан пустой ID", http.StatusBadRequest)
 		return
 	}
 
@@ -22,19 +22,19 @@ func getTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
-			writeJSONError(w, "Задачи с указанным ID не существует")
+			writeJSONError(w, "задачи с указанным ID не существует", http.StatusNotFound)
 			return
 		default:
-			writeJSONError(w, "Внутренняя ошибка сервера")
+			writeJSONError(w, "внутренняя ошибка сервера", http.StatusInternalServerError)
 			log.Print(err)
 			return
 		}
 	}
 
-	w.Header().Set("Content-Type", "applications/json")
+	w.Header().Set("Content-Type", "application/json")
 
 	err = json.NewEncoder(w).Encode(task)
 	if err != nil {
-		log.Printf("Ошибка отправки JSON: %v", err)
+		log.Printf("ошибка отправки JSON: %v", err)
 	}
 }

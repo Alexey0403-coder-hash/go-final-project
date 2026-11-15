@@ -24,13 +24,13 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&passwordUser)
 	if err != nil {
-		writeJSONError(w, "Ошибка чтения из JSON")
+		writeJSONError(w, "ошибка чтения из JSON", http.StatusBadRequest)
 		return
 	}
 
 	passwordEnv := os.Getenv("TODO_PASSWORD")
 	if passwordEnv == "" {
-		writeJSONError(w, "Аутентификация отключена")
+		writeJSONError(w, "аутентификация отключена", http.StatusForbidden)
 		return
 	}
 
@@ -38,11 +38,11 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		errResponse := ErrResponse{
-			Error: "Неправильный пароль",
+			Error: "неправильный пароль",
 		}
 		err := json.NewEncoder(w).Encode(errResponse)
 		if err != nil {
-			log.Printf("Ошибка отправки JSON: %v", err)
+			log.Printf("ошибка отправки JSON: %v", err)
 		}
 		return
 	}
@@ -58,8 +58,8 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 
 	tokenString, err := token.SignedString([]byte(passwordEnv))
 	if err != nil {
-		log.Printf("Ошибка подписи токена: %v", err)
-		writeJSONError(w, "Ошибка на стороне сервера")
+		log.Printf("ошибка подписи токена: %v", err)
+		writeJSONError(w, "ошибка на стороне сервера", http.StatusInternalServerError)
 		return
 	}
 
@@ -70,14 +70,15 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(jwtResponse)
 	if err != nil {
-		log.Printf("Ошибка отправки JSON: %v", err)
+		log.Printf("ошибка отправки JSON: %v", err)
 		return
 	}
 }
 
 func auth(next http.HandlerFunc) http.HandlerFunc {
+	password := os.Getenv("TODO_PASSWORD")
+
 	return func(w http.ResponseWriter, r *http.Request) {
-		password := os.Getenv("TODO_PASSWORD")
 
 		if password == "" {
 			next(w, r)

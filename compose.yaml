@@ -7,12 +7,10 @@ services:
     ports:
       - "7540:7540"
 
-    env_file:
-      - .env
-
     environment:
-      TODO_PORT: ":7540"
+      TODO_PORT: "7540"
       TODO_DBFILE: "/data/scheduler.db"
+      TODO_PASSWORD: "${TODO_PASSWORD:-}"
 
     volumes:
       - scheduler-data:/data

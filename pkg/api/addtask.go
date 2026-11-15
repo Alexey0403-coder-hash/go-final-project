@@ -25,24 +25,24 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&addTask)
 	if err != nil {
-		writeJSONError(w, "Ошибка декодирования запроса JSON")
+		writeJSONError(w, "ошибка декодирования запроса JSON", http.StatusBadRequest)
 		return
 	}
 
 	if strings.TrimSpace(addTask.Title) == "" {
-		writeJSONError(w, "Ошибка запроса. Поле title не может быть пустым")
+		writeJSONError(w, "ошибка запроса. Поле title не может быть пустым", http.StatusBadRequest)
 		return
 	}
 
 	err = checkDate(&addTask)
 	if err != nil {
-		writeJSONError(w, err.Error())
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	lastIDint, err := db.AddTask(&addTask)
 	if err != nil {
-		writeJSONError(w, err.Error())
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,7 +56,7 @@ func AddTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(last)
 	if err != nil {
-		log.Printf("Ошибка отправки JSON: %v", err)
+		log.Printf("ошибка отправки JSON: %v", err)
 		return
 	}
 }
@@ -68,12 +68,12 @@ func checkDate(addTask *db.Task) error {
 	var next string
 
 	if addTask.Date == "" {
-		addTask.Date = now.Format("20060102")
+		addTask.Date = now.Format(format)
 	}
 
-	t, err := time.Parse("20060102", addTask.Date)
+	t, err := time.Parse(format, addTask.Date)
 	if err != nil {
-		return fmt.Errorf("Ошибка: некорректый формат даты: %w", err)
+		return fmt.Errorf("ошибка: некорректый формат даты: %w", err)
 	}
 
 	if addTask.Repeat != "" {
@@ -85,7 +85,7 @@ func checkDate(addTask *db.Task) error {
 
 	if afterNow(now, t) {
 		if addTask.Repeat == "" {
-			addTask.Date = now.Format("20060102")
+			addTask.Date = now.Format(format)
 		} else {
 			addTask.Date = next
 		}
@@ -94,13 +94,14 @@ func checkDate(addTask *db.Task) error {
 }
 
 // writeJSONError реализует сериализацию JSON с ошибкой
-func writeJSONError(w http.ResponseWriter, textErr string) {
+func writeJSONError(w http.ResponseWriter, textErr string, status int) {
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
 	errResponse := ErrResponse{
 		Error: textErr,
 	}
 	err := json.NewEncoder(w).Encode(errResponse)
 	if err != nil {
-		log.Printf("Ошибка отправки JSON: %v", err)
+		log.Printf("ошибка отправки JSON: %v", err)
 	}
 }

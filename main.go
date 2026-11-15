@@ -13,16 +13,23 @@ import (
 func main() {
 	errEnv := godotenv.Load()
 	if errEnv != nil {
-		log.Println("Файл .env не найден, используются системные переменные окружения")
+		log.Println("файл .env не найден, используются системные переменные окружения")
 	}
 	dbFile := os.Getenv("TODO_DBFILE")
 	if dbFile == "" {
 		dbFile = "scheduler.db"
 	}
-	err := db.Init(dbFile)
+	_, err := db.Init(dbFile)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			log.Printf("ошибка закрытия БД: %v", err)
+		}
+	}()
 
 	api.Init()
 
@@ -30,11 +37,11 @@ func main() {
 	handler := http.FileServer(dir)
 	port := os.Getenv("TODO_PORT")
 	if port == "" {
-		port = ":7540"
+		port = "7540"
 	}
 	http.Handle("/", handler)
-	err = http.ListenAndServe(port, nil)
+	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("ошибка HTTP-сервера: %v", err)
 	}
 }

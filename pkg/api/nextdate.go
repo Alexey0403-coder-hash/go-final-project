@@ -9,19 +9,21 @@ import (
 	"time"
 )
 
+const format = "20060102"
+
 // NextDate реализует расчет следующей даты повторения задачи
 func NextDate(now time.Time, start string, repeat string) (string, error) {
 	if start == "" {
-		return "", errors.New("Ошибка: строка первоначальной даты задачи пустая")
+		return "", errors.New("ошибка: строка первоначальной даты задачи пустая")
 	}
 
-	startTime, err := time.Parse("20060102", start)
+	startTime, err := time.Parse(format, start)
 	if err != nil {
-		return "", fmt.Errorf("Ошибка парсинга первоначальной даты задачи: %w", err)
+		return "", fmt.Errorf("ошибка парсинга первоначальной даты задачи: %w", err)
 	}
 
 	if repeat == "" {
-		return "", errors.New("Ошибка: строка повторения пустая")
+		return "", errors.New("ошибка: строка повторения пустая")
 	}
 
 	repeatSlice := strings.Split(repeat, " ")
@@ -29,41 +31,41 @@ func NextDate(now time.Time, start string, repeat string) (string, error) {
 	switch repeatSlice[0] {
 	case "d":
 		if len(repeatSlice) != 2 {
-			return "", errors.New("Ошибка: некорректный формат повторения в днях")
+			return "", errors.New("ошибка: некорректный формат повторения в днях")
 		}
 		dayInt, err := strconv.Atoi(repeatSlice[1])
 		if err != nil {
-			return "", fmt.Errorf("Ошибка преобразования типов дней: %w", err)
+			return "", fmt.Errorf("ошибка преобразования типов дней: %w", err)
 		}
 
 		if dayInt <= 0 {
-			return "", errors.New("Ошибка: количество дней повторения не положительное")
+			return "", errors.New("ошибка: количество дней повторения не положительное")
 		}
 
 		if dayInt > 400 {
-			return "", errors.New("Ошибка: недопустимое максимальное количество дней для повторения")
+			return "", errors.New("ошибка: недопустимое максимальное количество дней для повторения")
 		}
 
 		for {
 			startTime = startTime.AddDate(0, 0, dayInt)
 			if afterNow(startTime, now) {
-				repeatDateString := startTime.Format("20060102")
+				repeatDateString := startTime.Format(format)
 				return repeatDateString, nil
 			}
 		}
 	case "y":
 		if len(repeatSlice) != 1 {
-			return "", errors.New("Ошибка: некорректный формат повторения в годах")
+			return "", errors.New("ошибка: некорректный формат повторения в годах")
 		}
 		for {
 			startTime = startTime.AddDate(1, 0, 0)
 			if afterNow(startTime, now) {
-				repeatDateString := startTime.Format("20060102")
+				repeatDateString := startTime.Format(format)
 				return repeatDateString, nil
 			}
 		}
 	default:
-		return "", errors.New("Ошибка: недопустимый символ для повторения")
+		return "", errors.New("ошибка: недопустимый символ для повторения")
 	}
 }
 
@@ -97,9 +99,9 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 		timeNow = time.Now()
 	} else {
 		var err error
-		timeNow, err = time.Parse("20060102", now)
+		timeNow, err = time.Parse(format, now)
 		if err != nil {
-			fmt.Fprintf(w, "Ошибка парсинга начальной даты: %v", err)
+			http.Error(w, "ошибка парсинга начальной даты", http.StatusBadRequest)
 			return
 		}
 	}
@@ -110,7 +112,7 @@ func nextDayHandler(w http.ResponseWriter, r *http.Request) {
 
 	repeatString, err := NextDate(timeNow, date, repeat)
 	if err != nil {
-		fmt.Fprint(w, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
